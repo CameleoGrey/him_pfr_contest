@@ -1,0 +1,75 @@
+data splitting:
+We split the data into 3 groups:
+cg1(customer group 1) is the users with transactions in last 30 days;
+cg2(customer group 2) is the users without transactions in last 30 days, but with transactions in history.
+cg3(customer group 3) is the users without transactions in history.
+cg1 and cg2: multi-recalls + rank.
+cg3: popular items recall.
+
+items recalls:
+--- 5th place:
+	U2I: User based collaborative filtering.
+	I2i: Item based collaborative filtering
+	word2vec: to predict customer's next possible purchase articles after last buckets
+	Articles bought together.
+	Popular articles with different customers' attributes like age bin, gender etc.
+	So overall we use 21 recall methods to create article candidates.
+--- 16th place:
+	repurchase recall
+	binaryNet recall
+	ItemCF recall
+	UserCF recall
+	W2V content recall
+	NLP content recall
+	Image content recall
+	Category content recall
+	Each recall method will recall 100 items for every user, then drop duplicates.
+--- 17th place:
+	Previously purchased items
+	Items with the same product code as previously purchased items
+	Customer's last buckets(and same product code to customers' last bucket's articles), recent bought articles
+
+
+User features: 
+--- 16th place:
+	'min', 'max', 'mean', 'std', 'median', 'sum', 'nunique'
+--- 17th place:
+	customer attributes (age, gender etc)
+	number of repeats of the same item in the past by each customer
+	average purchase span / difference between average purchase span and last purchase date
+	mean price / max price
+	mean channel_id by each customer
+
+Item features:
+--- 16th place:
+	'min', 'max', 'mean', 'std', 'median', 'sum', 'nunique'
+--- 17th place:
+	article attributes (product_code, section_no etc)
+	number of sales per week (week0~week5)
+	number of sales per day (day0~day6)
+	mean channel_id by each article
+
+Interaction Features:
+count of user-item purchased in different window(1day, 3days, 1week, 2weeks, 1month).
+The time-diff since the user last purchased the item
+last purchase date with the same attributes as the candidate item
+difference between mean channel_id by each customer and by each article
+purchase rate of the candidate item by customers of the same age
+percentage of items with the same attributes as the candidate item among the customer's past purchases
+
+CV Strategy
+5fold / GroupKfold(customer_id)
+
+
+common techniques:
+recall methods callibration (N_1 candidates from RM_1, N_2 from RM_2 to maximize overall true positive rate)
+--- Approximate nearest neighbors search:
+ *) FAISS
+ *) Annoy
+ *) HNSW — Hierarchical Navigable Small World Graphs
+ *) RPLSH — Random Projection based Locality Sensitive Hashing
+ *) Scann
+
+
+
+

@@ -1,0 +1,7 @@
+5th place: https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations/overview/evaluation
+16th place: https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations/discussion/324158
+17th place: https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations/discussion/324595
+rec sys 1: https://towardsdatascience.com/deep-learning-for-semantic-text-matching-d4df6c2cf4c5
+rec sys 2: https://medium.com/mlearning-ai/building-a-multi-stage-recommendation-system-part-1-1-95961ccf3dd8
+ad click 1: https://medium.com/@mumbaiyachori/ad-click-prediction-machine-learning-system-design-6e553d7ccc1c
+ad click 2: https://medium.com/pinterest-engineering/advertiser-recommendation-systems-at-pinterest-ccb255fbde20
