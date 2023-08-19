@@ -1,87 +1,64 @@
 import numpy as np
 import implicit
 from pathlib import Path
+
+import pandas as pd
 from tqdm import tqdm
 from scipy.sparse import csr_matrix, csr_matrix
 
-from src_v_1_no_cv.classes.utils import *
-from src_v_1_no_cv.classes.paths_config import *
-from src_v_1_no_cv.classes.ALSRecommender import ALSRecommender
+from src_v_2_pandas.classes.utils import *
+from src_v_2_pandas.classes.paths_config import *
+from src_v_2_pandas.classes.ALSRecommender import ALSRecommender
 
-frequency_dict = load(Path(interim_dir, "frequency_dict.pkl"))
+all_transactions = pd.read_parquet( Path( raw_dir, "transactions_train.parquet" ),
+                                    columns=["t_dat", "customer_id", "article_id"] )
+all_transactions["t_dat"] = pd.to_datetime( all_transactions["t_dat"] )
+#print( all_transactions.shape )
+#all_transactions = all_transactions[all_transactions['t_dat'] > '2020-06-21']
+#print( all_transactions.shape )
+#all_transactions.to_parquet( Path( raw_dir, "transactions_train_short.parquet" ) )
+#all_transactions = pd.read_parquet( Path( raw_dir, "transactions_train_short.parquet" ) )
 
-"""keys = list(frequency_dict.keys())[:1000]
-subsample_dict = {}
-for key in keys:
-   subsample_dict[key] = frequency_dict[key]
-save( subsample_dict, Path(interim_dir, "subsample_dict.pkl") )
-frequency_dict = load( Path(interim_dir, "subsample_dict.pkl") )"""
+all_users_df = pd.read_parquet( Path( raw_dir, "customers.parquet" ), columns=["customer_id"] )
+all_items_df = pd.read_parquet( Path( raw_dir, "articles.parquet" ), columns=["article_id"] )
 
-users_with_transactions = []
-users_without_transactions = []
-for user_id in frequency_dict.keys():
-    if len(frequency_dict[user_id]) == 0:
-        users_without_transactions.append( user_id )
-        del frequency_dict[user_id]
-    else:
-        users_with_transactions.append( user_id )
-save( users_with_transactions, Path(interim_dir, "users_with_transactions.pkl") )
-save( users_without_transactions, Path(interim_dir, "users_without_transactions.pkl") )
-clean_frequency_dict = frequency_dict
+als_recommender = ALSRecommender( all_users_df, all_items_df )
+all_transactions = als_recommender.add_mapped_user_item_ids( all_transactions )
 
-als_recommender = ALSRecommender()
-csr_u2i_matrix = als_recommender.build_csr_u2i_matrix( clean_frequency_dict, use_sum_counts=False, n_most_popular=12 )
-save(csr_u2i_matrix, Path(interim_dir, "csr_u2i_matrix.pkl"))
-save(als_recommender, Path(interim_dir, "als_recommender.pkl"))
+#als_recommender.evaluate_als_cv( all_transactions, cv=5, train_days=28, validation_days=7,
+#                                factors=100, iterations=12,
+#                                nlist=400, nprobe=20, use_gpu=False,
+#                                calculate_training_loss=False,
+#                                regularization=0.01, random_state=45 )
 
-csr_u2i_matrix = load( Path(interim_dir, "csr_u2i_matrix.pkl") )
-als_recommender.fit_als(csr_u2i_matrix,
-                factors=500, iterations=3,
-                nlist=400, nprobe=20, use_gpu=False,
-                calculate_training_loss=False,
-                regularization=0.01, random_state=45)
-save(als_recommender, Path(interim_dir, "als_recommender.pkl"))
+als_recommender.fit_als(all_transactions,
+                        factors=500, iterations=3,
+                        nlist=400, nprobe=20, use_gpu=False,
+                        calculate_training_loss=False,
+                        regularization=0.01, random_state=45 )
+save( als_recommender, Path(interim_dir, "als_recommender.pkl") )
 
-"""users_without_transactions = load( Path(interim_dir, "users_without_transactions.pkl") )
-users_with_transactions = load( Path(interim_dir, "users_with_transactions.pkl") )
-als_recommender = load( Path(interim_dir, "als_recommender.pkl") )
-recommends_for_uwot = als_recommender.recommend( users_without_transactions, N=12, filter_already_liked_items=False )
-recommends_for_uwit = als_recommender.recommend( users_with_transactions, N=12, filter_already_liked_items=False )
-als_recommendations = recommends_for_uwot | recommends_for_uwit
-save( als_recommendations, Path( interim_dir, "als_recommendations.pkl" ) )"""
 
-als_recommender = load( Path(interim_dir, "als_recommender.pkl") )
+als_recommender = load(Path(interim_dir, "als_recommender.pkl"))
 sample_submission = pd.read_csv( Path(raw_dir, "sample_submission.csv") )
 user_ids = sample_submission["customer_id"].tolist()
-als_recommendations = als_recommender.recommend( user_ids, N=12, filter_already_liked_items=False )
+
+###################
+"""all_transactions = pd.read_parquet( Path( raw_dir, "transactions_train.parquet" ), columns=["customer_id"] )
+users_with_transactions = all_transactions["customer_id"].tolist()
+users_with_transactions = set( users_with_transactions )
+
+users_without_transactions = set(user_ids)
+users_without_transactions = users_without_transactions.difference( users_with_transactions )
+
+users_with_transactions = list(users_with_transactions)
+users_without_transactions = list(users_without_transactions)
+
+als_recommendations_without_trans = als_recommender.recommend(users_without_transactions, N=12, filter_already_liked_items=False, batch_size=100)
+als_recommendations = als_recommender.recommend(users_with_transactions, N=12, filter_already_liked_items=False, batch_size=2000)"""
+###################
+
+als_recommendations = als_recommender.recommend(user_ids, N=12, filter_already_liked_items=False, batch_size=2000)
 save( als_recommendations, Path( interim_dir, "als_recommendations.pkl" ) )
-
-"""als_recommender = load(Path(interim_dir, "als_recommender.pkl"))
-user_factors = als_recommender.get_user_factors()
-article_factors = als_recommender.get_item_factors()
-
-factor_dict_postfix = "50_100_400_20_1"
-article_factor_features_dict = {}
-article_factor_features_dict["feature_names"] = []
-for i in range(len(article_factors[0])):
-    article_factor_features_dict["feature_names"].append("factor_{}".format(i))
-inverted_article_id_dict = load(Path(interim_dir, "factor_inverted_article_id_dict.pkl"))
-for i in tqdm(range(len(article_factors)), desc="Building article factor features dict"):
-    article_id = inverted_article_id_dict[i]
-    article_factor_features = article_factors[i]
-    article_factor_features_dict[article_id] = article_factor_features
-save(article_factor_features_dict, Path(interim_dir, "article_factor_features_dict_{}.pkl".format(factor_dict_postfix)))
-
-user_factor_features_dict = {}
-user_factor_features_dict["feature_names"] = []
-for i in range(len(user_factors[0])):
-    user_factor_features_dict["feature_names"].append("factor_{}".format(i))
-
-inverted_user_id_dict = load(Path(interim_dir, "factor_inverted_user_id_dict.pkl"))
-for i in tqdm(range(len(user_factors)), desc="Building user factor features dict"):
-    user_id = inverted_user_id_dict[i]
-    user_factor_features = user_factors[i]
-    user_factor_features_dict[user_id] = user_factor_features
-save(user_factor_features_dict, Path(interim_dir, "user_factor_features_dict_{}.pkl".format(factor_dict_postfix)))"""
 
 print("done")

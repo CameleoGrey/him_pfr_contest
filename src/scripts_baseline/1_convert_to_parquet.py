@@ -4,8 +4,8 @@ import os
 import numpy as np
 import pandas as pd
 
-from src_v_1_no_cv.classes.utils import *
-from src_v_1_no_cv.classes.paths_config import *
+from src_v_2_pandas.classes.utils import *
+from src_v_2_pandas.classes.paths_config import *
 from tqdm import tqdm
 
 files_to_convert = ["articles", "customers", "transactions_train"]

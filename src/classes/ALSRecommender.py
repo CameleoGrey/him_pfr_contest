@@ -1,130 +1,130 @@
 
 import numpy as np
+import pandas as pd
 from scipy.sparse import csr_matrix
 import implicit
+from implicit.evaluation import mean_average_precision_at_k
 
 from tqdm import tqdm
 from pathlib import Path
 
 class ALSRecommender():
-    def __init__(self):
+    def __init__(self, all_users_df, all_items_df):
 
         self.als = None
+        self.csr_u2i_matrix = None
 
-        self.user_id_dict = None
-        self.inverted_user_id_dict = None
-
-        self.item_id_dict = None
-        self.inverted_item_id_dict = None
-
-        self.most_popular_item_ids = None
-        self.user_items_dict = None
+        self.user_ids = None
+        self.item_ids = None
+        self.user_map = None
+        self.item_map = None
+        self.build_ui_maps( all_users_df, all_items_df )
 
         pass
 
-    def build_csr_u2i_matrix(self, frequency_dict, use_sum_counts = False, n_most_popular=12):
+    def build_ui_maps(self, all_users_df, all_items_df):
 
-        user_ids = []
-        item_ids = []
-        item_sum_counts = []
-        for user_id in tqdm(frequency_dict.keys(), desc="Building sparse matrix User2Item"):
-            user_items_dict = frequency_dict[user_id]
-            for item_id in user_items_dict.keys():
-                item_ids.append(item_id)
-                user_ids.append(user_id)
+        uniq_user_ids_list = all_users_df['customer_id'].unique().tolist()
+        uniq_item_ids_list = all_items_df['article_id'].unique().tolist()
 
-                if use_sum_counts:
-                    buy_count = user_items_dict[item_id]
-                    item_sum_counts.append( buy_count )
-                else:
-                    item_sum_counts.append(1)
+        self.user_ids = dict(list(enumerate(uniq_user_ids_list)))
+        self.item_ids = dict(list(enumerate(uniq_item_ids_list)))
 
-        # set most popular items
-        purchased_items_count = {}
-        for i in range(len(item_sum_counts)):
-            item_id = item_ids[i]
-            if item_id not in purchased_items_count.keys():
-                purchased_items_count[ item_id ] = 0
-            purchased_items_count[ item_id ] += item_sum_counts[i]
-        item_id_keys = list(purchased_items_count.keys())
-        item_purchased_counts = list( purchased_items_count.values() )
-        most_popular_list_ids = np.argsort(item_purchased_counts)[-n_most_popular:][::-1]
-        most_popular_item_ids = []
-        for popular_id in most_popular_list_ids:
-            most_popular_item_ids.append( item_id_keys[popular_id] )
-        self.most_popular_item_ids = most_popular_item_ids
+        self.user_map = {u: uidx for uidx, u in self.user_ids.items()}
+        self.item_map = {i: iidx for iidx, i in self.item_ids.items()}
 
-        uniq_user_ids = list(sorted(list(set(user_ids))))
-        user_id_dict = {}
-        for i in tqdm(range(len(uniq_user_ids)), desc="Building user --> id mapping"):
-            user_id_dict[uniq_user_ids[i]] = i
-        inverted_user_id_dict = {v: k for k, v in user_id_dict.items()}
-        self.user_id_dict = user_id_dict
-        self.inverted_user_id_dict = inverted_user_id_dict
+        pass
 
-        uniq_items = list(sorted(list(set(item_ids))))
-        item_id_dict = {}
-        for i in tqdm(range(len(uniq_items)), desc="Building item --> id mapping"):
-            item_id_dict[uniq_items[i]] = i
-        inverted_item_id_dict = {v: k for k, v in item_id_dict.items()}
-        self.item_id_dict = item_id_dict
-        self.inverted_item_id_dict = inverted_item_id_dict
+    def add_mapped_user_item_ids(self, transactions_df):
 
-        # set purchased items
-        """user_items_dict = {}
-        for user_id in frequency_dict.keys():
-            matrix_user_id = self.user_id_dict[user_id]
-            user_purchases = frequency_dict[user_id]
-            user_items_dict[matrix_user_id] = []
-            for user_purchased_item in user_purchases.keys():
-                matrix_item_id = self.item_id_dict[ user_purchased_item ]
-                user_items_dict[matrix_user_id].append( matrix_item_id )
-            user_items_dict[matrix_user_id] = np.array( user_items_dict[matrix_user_id] )
-        self.user_items_dict = user_items_dict"""
+        transactions_df['user_id'] = transactions_df['customer_id'].map(self.user_map)
+        transactions_df['item_id'] = transactions_df['article_id'].map(self.item_map)
 
-        for i in tqdm(range(len(item_sum_counts)), desc="Mapping content for building sparse matrix"):
-            user_ids[i] = user_id_dict[user_ids[i]]
-            item_ids[i] = item_id_dict[item_ids[i]]
-        user_ids = np.array(user_ids)
-        item_ids = np.array(item_ids)
-        item_sum_counts = np.array(item_sum_counts)
+        return transactions_df
 
-        csr_u2i_matrix = csr_matrix((item_sum_counts, (user_ids, item_ids)),
-                                                shape=(np.max(user_ids) + 1, np.max(item_ids) + 1))
+    def build_csr_u2i_matrix(self, transactions_df):
+
+        row = transactions_df['user_id'].values
+        col = transactions_df['item_id'].values
+
+        data = np.ones(transactions_df.shape[0])
+        csr_u2i_matrix = csr_matrix((data, (row, col)), shape=(len(self.user_map), len(self.item_map)))
 
         return csr_u2i_matrix
 
-    def fit_als(self, csr_u2i_matrix,
-                factors=50, iterations=100,
+    def get_cv_datetime_splits(self, transactions_df, cv=5, train_days=28, validation_days=7):
+
+        cv_datetime_splits = []
+        total_validation_days = cv * validation_days
+        val_start = transactions_df["t_dat"].max() - pd.Timedelta( days=total_validation_days )
+        train_start = val_start - pd.Timedelta( days=train_days )
+        for i in range( cv ):
+            current_split = []
+            current_split.append( train_start )
+            current_split.append( val_start )
+            val_end = val_start + pd.Timedelta( days=validation_days )
+            current_split.append( val_end )
+            current_split = tuple( current_split )
+            cv_datetime_splits.append( current_split )
+            val_start = val_end
+            train_start = val_start - pd.Timedelta(days=train_days)
+
+        return cv_datetime_splits
+
+    def split_into_train_val(self, transactions_df, datetime_split):
+        train_start = datetime_split[0]
+        val_start = datetime_split[1]
+        val_end = datetime_split[2]
+
+        train_df = transactions_df[ (transactions_df["t_dat"] >= train_start) \
+                                   & (transactions_df["t_dat"] < val_start) ]
+        val_df = transactions_df[ (transactions_df["t_dat"] >= val_start) \
+                                   & (transactions_df["t_dat"] < val_end) ]
+
+        return train_df, val_df
+
+    def evaluate_als_cv(self,
+                        transactions_df, cv=5, train_days=28, validation_days=7,
+                        factors=100, iterations=12,
+                        nlist=400, nprobe=20, use_gpu=False,
+                        calculate_training_loss=False,
+                        regularization=0.01, random_state=45
+                        ):
+
+        cv_datetime_splits = self.get_cv_datetime_splits( transactions_df, cv, train_days, validation_days)
+
+        cv_fold_scores = []
+        for datetime_split in tqdm(cv_datetime_splits, desc="Fitting ALS on cv folds"):
+            train_df, val_df = self.split_into_train_val( transactions_df, datetime_split )
+
+            self.fit_als(train_df,
+                         factors = factors,
+                         iterations = iterations,
+                         nlist = nlist,
+                         nprobe = nprobe,
+                         use_gpu = use_gpu,
+                         calculate_training_loss = calculate_training_loss,
+                         regularization = regularization,
+                         random_state = random_state)
+
+            train_csr = self.build_csr_u2i_matrix(train_df)
+            val_csr = self.build_csr_u2i_matrix(val_df)
+            score = mean_average_precision_at_k(self.als, train_csr, val_csr, K=12, show_progress=True, num_threads=8)
+            cv_fold_scores.append( score )
+            print("Val period: {} | MAP12 score: {}".format( datetime_split, round(score, 6) ))
+
+        mean_cv_score = np.mean( cv_fold_scores )
+        print("Mean CV score: {}".format( mean_cv_score ))
+
+        return mean_cv_score
+
+    def fit_als(self, transactions_df,
+                factors=100, iterations=12,
                 nlist=400, nprobe=20, use_gpu=False,
                 calculate_training_loss=False,
-                regularization=0.1, random_state=45):
+                regularization=0.01, random_state=45):
 
-        # set items_dict for users with transactions
-        user_items_dict = {}
-        item_ids = []
-        for i in range(csr_u2i_matrix.shape[1]):
-            item_ids.append( i )
-        item_ids = np.array( item_ids )
-        for i in tqdm(range(csr_u2i_matrix.shape[0]), desc="Extracting purchased "):
-            user_possible_items = csr_u2i_matrix[i, :].toarray()[0]
-            user_purchased_items = item_ids[ user_possible_items != 0 ]
-            user_items_dict[ i ] = user_purchased_items
-        self.user_items_dict = user_items_dict
-
-        # set n_most_popular for users without transactions
-        """sum_counts = []
-        for i in tqdm(range( csr_u2i_matrix.shape[1] ), desc="Finding most popular items"):
-            item_counts = csr_u2i_matrix[:, i]
-            item_sum_count = np.sum( item_counts )
-            sum_counts.append( item_sum_count )
-        sum_counts = np.array( sum_counts )
-        most_popular_item_ids = np.argsort(sum_counts)[-n_most_popular:][::-1]
-        self.most_popular_item_ids = []
-        for popular_item_id in most_popular_item_ids:
-            direct_item_id = self.inverted_item_id_dict[popular_item_id]
-            self.most_popular_item_ids.append( direct_item_id )"""
-
+        csr_u2i_matrix = self.build_csr_u2i_matrix(transactions_df)
         als = implicit.approximate_als.FaissAlternatingLeastSquares(factors = factors,
                                                                     iterations = iterations,
                                                                     nlist = nlist,
@@ -136,32 +136,35 @@ class ALSRecommender():
 
         als.fit( csr_u2i_matrix )
         self.als = als
+        self.csr_u2i_matrix = csr_u2i_matrix
 
         return self
 
-    def recommend(self, user_ids, N=12, filter_already_liked_items=False):
+    def recommend(self, user_ids_list, N=12, filter_already_liked_items=False, batch_size=2000):
 
         recommendations = {}
-        already_seen_users_count = 0
-        new_users_count = 0
-        for user_id in tqdm(user_ids, desc = "Making recommendations for each user"):
-            if user_id in self.user_id_dict.keys():
-                matrix_user_id = self.user_id_dict[user_id]
-                user_items = self.user_items_dict[matrix_user_id]
-                user_recommendations = self.als.recommend( matrix_user_id, user_items, N=N,
-                                                           filter_already_liked_items=filter_already_liked_items )
-                user_recommendations = user_recommendations[0]
-                user_recommendations = list(user_recommendations)
-                for i, matrix_item_id in enumerate(user_recommendations):
-                    user_recommendations[i] = self.inverted_item_id_dict[matrix_item_id]
-                already_seen_users_count += 1
-            else:
-                user_recommendations = self.most_popular_item_ids
-                new_users_count += 1
-            recommendations[ user_id ] = user_recommendations
 
-        print("Already seen users: {}".format( already_seen_users_count ))
-        print("New users: {}".format( new_users_count ))
+        mapped_user_ids = []
+        not_found_ids = []
+        for i in tqdm(range( len(user_ids_list) ), desc="Mapping user ids"):
+            current_id = user_ids_list[i]
+            if current_id not in self.user_map.keys():
+                not_found_ids.append( current_id )
+                continue
+            mapped_id = self.user_map[ current_id ]
+            mapped_user_ids.append( mapped_id )
+
+        for startidx in tqdm(range(0, len(mapped_user_ids), batch_size), desc="Making recommendations"):
+            batch = mapped_user_ids[startidx: startidx + batch_size]
+            ids, scores = self.als.recommend(batch,
+                                             self.csr_u2i_matrix[batch],
+                                             N=N,
+                                             filter_already_liked_items=filter_already_liked_items)
+            for i, userid in enumerate(batch):
+                customer_id = self.user_ids[userid]
+                user_items = ids[i]
+                article_ids = [self.item_ids[item_id] for item_id in user_items]
+                recommendations[customer_id] = article_ids
 
         return recommendations
 
