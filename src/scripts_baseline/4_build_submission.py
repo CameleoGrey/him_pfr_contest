@@ -2,8 +2,8 @@
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
-from src_v_2_pandas.classes.utils import *
-from src_v_2_pandas.classes.paths_config import *
+from src.classes.utils import *
+from src.classes.paths_config import *
 
 als_recommendations = load( Path( interim_dir, "als_recommendations.pkl" ) )
 

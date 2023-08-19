@@ -6,8 +6,8 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 
-from src_v_2_pandas.classes.paths_config import *
-from src_v_2_pandas.classes.utils import *
+from src.classes.paths_config import *
+from src.classes.utils import *
 
 all_users_df = pd.read_parquet( Path( raw_dir, "customers.parquet" ), columns=["customer_id"] )
 all_transactions = pd.read_parquet( Path( raw_dir, "transactions_train.parquet" ),

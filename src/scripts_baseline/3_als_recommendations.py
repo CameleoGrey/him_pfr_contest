@@ -6,9 +6,9 @@ import pandas as pd
 from tqdm import tqdm
 from scipy.sparse import csr_matrix, csr_matrix
 
-from src_v_2_pandas.classes.utils import *
-from src_v_2_pandas.classes.paths_config import *
-from src_v_2_pandas.classes.ALSRecommender import ALSRecommender
+from src.classes.utils import *
+from src.classes.paths_config import *
+from src.classes.ALSRecommender import ALSRecommender
 
 all_transactions = pd.read_parquet( Path( raw_dir, "transactions_train.parquet" ),
                                     columns=["t_dat", "customer_id", "article_id"] )
