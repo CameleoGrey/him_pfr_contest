@@ -36,16 +36,17 @@ Skills to train:
 *) dvc
 *) Polars
 *) SQL 
-*) SQL DBs (SQLite, PostgreSQL, MySQL, Clickhouse, Cassandra, GreenPlum, MongoDB)
+*) SQL DBs (SQLite, PostgreSQL, MySQL, GreenPlum, Clickhouse)
+*) NoSQL (Cassandra, MongoDB)
+*) Flask, FastAPI, Django (DRF)
+*) Kafka
+*) Redis
 *) SQLAlchemy
 *) Spark
 *) Hive
 *) Hadoop
-*) Kafka
-*) Redis
 *) Airflow
 *) Presto
-*) Flask
 *) Docker
 *) Docker Compose
 *) Kubernates

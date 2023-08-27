@@ -2,6 +2,10 @@
 import os
 from pathlib import Path
 
+configs_dir = os.path.join("..", "..", "configs")
+if not Path( configs_dir ).exists():
+    Path( configs_dir ).mkdir(parents=True, exist_ok=True)
+
 models_dir = os.path.join("..", "..", "models")
 if not Path( models_dir ).exists():
     Path( models_dir ).mkdir(parents=True, exist_ok=True)
@@ -13,6 +17,10 @@ if not Path( data_dir ).exists():
 raw_dir = os.path.join( data_dir, "raw" )
 if not Path( raw_dir ).exists():
     Path( raw_dir ).mkdir(parents=True, exist_ok=True)
+
+log_dir = os.path.join( data_dir, "logs" )
+if not Path( log_dir ).exists():
+    Path( log_dir ).mkdir(parents=True, exist_ok=True)
 
 images_dir = os.path.join( raw_dir, "images" )
 if not Path( images_dir ).exists():
