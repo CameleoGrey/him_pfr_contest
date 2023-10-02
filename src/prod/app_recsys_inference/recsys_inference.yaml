@@ -1,0 +1,40 @@
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recsys-inference
+  labels:
+    app: recsys-inference
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: recsys-inference
+  template:
+    metadata:
+      labels:
+        app: recsys-inference
+    spec:
+      containers:
+      - name: demo-app
+        image: 192.168.0.106:30455/recsys-inference:latest
+        ports:
+        - containerPort: 12000
+        imagePullPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recsys-inference-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: recsys-inference
+  ports:
+    - protocol: TCP
+      name: http
+      port: 12000
+      targetPort: 12000
+

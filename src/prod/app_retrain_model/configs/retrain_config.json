@@ -1,0 +1,10 @@
+{
+  "factors": 500,
+  "iterations": 3,
+  "nlist": 400,
+  "nprobe": 20, 
+  "use_gpu": false,
+  "calculate_training_loss": false,
+  "regularization": 0.01, 
+  "random_state": 45
+}

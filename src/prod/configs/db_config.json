@@ -1,0 +1,17 @@
+{
+  "clickhouse": {
+    "host": "192.168.200.130", 
+    "port": 9000, 
+    "database": "default", 
+    "user": "default", 
+    "password": "852456"
+  },
+  
+  "postgres": {
+    "host": "192.168.0.200", 
+    "port": 5432, 
+    "database": "him_contest", 
+    "user": "postgres", 
+    "password": "852456"
+  }
+}

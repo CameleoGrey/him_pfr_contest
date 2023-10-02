@@ -10,9 +10,9 @@ import pandas as pd
 from tqdm import tqdm
 from scipy.sparse import csr_matrix, csr_matrix
 
-from src.classes.utils import *
-from src.classes.paths_config import *
-from src.classes.ALSRecommender import ALSRecommender
+from src.research.classes.utils import *
+from src.research.classes.paths_config import *
+from src.research.classes.ALSRecommender import ALSRecommender
 
 import sys
 import logging

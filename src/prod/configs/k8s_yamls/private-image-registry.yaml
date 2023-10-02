@@ -1,0 +1,43 @@
+# Deploys a new MinIO Pod into the metadata.namespace Kubernetes namespace
+#
+# The `spec.containers[0].args` contains the command run on the pod
+# The `/data` directory corresponds to the `spec.containers[0].volumeMounts[0].mountPath`
+# That mount path corresponds to a Kubernetes HostPath which binds `/data` to a local drive or volume on the worker node where the pod runs
+# 
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: private-image-registry
+  name: private-image-registry
+spec:
+  containers:
+  - name: private-image-registry
+    image: registry:latest
+    ports:
+    - containerPort: 5000
+    volumeMounts:
+    - mountPath: /data
+      name: localvolume # Corresponds to the `spec.volumes` Persistent Volume
+  volumes:
+  - name: localvolume
+    hostPath: # MinIO generally recommends using locally-attached volumes
+      path: /mnt/private-image-registry # Specify a path to a local drive or volume on the Kubernetes worker node
+      type: DirectoryOrCreate # The path to the last directory must exist
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: private-image-registry-service
+  labels:
+    app: private-image-registry-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: private-image-registry
+  ports:
+    - protocol: TCP
+      name: http
+      port: 5000
+      targetPort: 5000

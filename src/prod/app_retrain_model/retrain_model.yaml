@@ -1,0 +1,40 @@
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: retrain-model
+  labels:
+    app: retrain-model
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: retrain-model
+  template:
+    metadata:
+      labels:
+        app: retrain-model
+    spec:
+      containers:
+      - name: demo-app
+        image: 192.168.0.106:30455/retrain-model:latest
+        ports:
+        - containerPort: 11000
+        imagePullPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: retrain-model-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: retrain-model
+  ports:
+    - protocol: TCP
+      name: http
+      port: 11000
+      targetPort: 11000
+

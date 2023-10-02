@@ -140,7 +140,33 @@ class ALSRecommender():
 
         return self
 
-    def recommend(self, user_ids_list, N=12, filter_already_liked_items=False, batch_size=2000):
+    def recommend(self, user_ids, N=12, filter_already_liked_items=False, batch_size=2000):
+
+        if isinstance(user_ids, str):
+            recommendations = self.recommend_once(user_ids, N, filter_already_liked_items)
+        elif isinstance(user_ids, list):
+            recommendations = self.recommend_batch(user_ids, N, filter_already_liked_items, batch_size)
+        else:
+            raise Exception("Wrong user_ids type. Available: str, list()")
+
+        return recommendations
+
+
+    def recommend_once(self, user_id, N=12, filter_already_liked_items=False):
+        recommendations = {}
+        mapped_id = self.user_map[user_id]
+        ids, scores = self.als.recommend(mapped_id,
+                                         self.csr_u2i_matrix[[mapped_id]],
+                                         N=N,
+                                         filter_already_liked_items=filter_already_liked_items)
+        customer_id = self.user_ids[mapped_id]
+        user_items = ids
+        article_ids = [self.item_ids[item_id] for item_id in user_items]
+        recommendations[customer_id] = article_ids
+
+        return recommendations
+
+    def recommend_batch(self, user_ids_list, N=12, filter_already_liked_items=False, batch_size=2000):
 
         recommendations = {}
 

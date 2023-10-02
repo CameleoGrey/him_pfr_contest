@@ -1,0 +1,16 @@
+{
+  "minio": {
+    "endpoint": "192.168.0.178:31769",
+    "access_key": "minioadmin",
+    "secret_key": "minioadmin",
+    "secure": false
+    },
+  "private-registry": {
+    "host": "192.168.0.106",
+    "port": "30455"
+    },
+  "recsys-inference": {
+    "host": "192.168.0.118",
+    "port": "30644"
+    }
+}

@@ -1,0 +1,40 @@
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-emulator
+  labels:
+    app: client-emulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client-emulator
+  template:
+    metadata:
+      labels:
+        app: client-emulator
+    spec:
+      containers:
+      - name: client-emulator
+        image: 192.168.0.106:30455/client-emulator:latest
+        ports:
+        - containerPort: 13000
+        imagePullPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-emulator-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: client-emulator
+  ports:
+    - protocol: TCP
+      name: http
+      port: 13000
+      targetPort: 13000
+

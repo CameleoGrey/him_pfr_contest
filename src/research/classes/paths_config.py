@@ -2,7 +2,7 @@
 import os
 from pathlib import Path
 
-configs_dir = os.path.join("..", "..", "configs")
+configs_dir = os.path.join("..", "..", "prod.demo_web_app.configs")
 if not Path( configs_dir ).exists():
     Path( configs_dir ).mkdir(parents=True, exist_ok=True)
 
