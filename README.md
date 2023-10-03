@@ -29,6 +29,7 @@ Littensim (little enterprise simulator) is a series of my projects to train Mach
 - [:white_check_mark:] k3s
 - [:x:] AirFlow / Celery
 - [:x:] CI/CD (GitLab)
+- [:x:] Helm
 - [:white_check_mark:] Minio
 - [:x:] DVC
 - [:x:] MLFlow
@@ -38,9 +39,8 @@ Littensim (little enterprise simulator) is a series of my projects to train Mach
 - [:x:] Spark
 - [:x:] HBase
 - [:x:] ElasticSearch
-- [:x:] LogStash
-- [:x:] Kibana
-- [:x:] Grafana
+- [:x:] Logstash
+- [:x:] Kibana / Grafana
 - [:x:] Yandex Cloud *(deploy something to train cloud deploy)*
 - [:x:] A/B Tests
 - [:x:] Scala
